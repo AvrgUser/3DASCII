@@ -73,7 +73,7 @@ class Main {
     static float[][] zMap = new float[width][height];
 
     public static void main(String[] args) throws InterruptedException {
-        var result = LoadObjectFromFile("C:\\Users\\Valera\\Desktop\\cube\\cube.txt"); // Укажите свой файл
+        var result = LoadObjectFromFile("D:\\projects\\dr\\3DASCII\\cube\\cube.txt"); // Укажите свой файл
         Vertex[] vertices = result.vertices;
         Polygon[] connections = result.connections;
 
@@ -313,7 +313,6 @@ class Main {
             for (int y = minY; y <= maxY; y++) {
                 if (IsPointInsideTriangle(x, y, p1, p2, p3)) {
                     float z = 0;
-                    // Вычисляем знаменатель для барицентрических координат
                     float x1 = p1.x, y1 = p1.y;
                     float x2 = p2.x, y2 = p2.y;
                     float x3 = p3.x, y3 = p3.y;
@@ -322,17 +321,15 @@ class Main {
 
                     float l1, l2, l3;
                     if (denominator == 0) {
-                        // Треугольник вырожден, используем среднее значение z (или другое подходящее)
                         z = (p1.z + p2.z + p3.z) / 3;
                     } else {
                         l1 = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / denominator;
                         l2 = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / denominator;
                         l3 = 1.0f - l1 - l2;
 
-                        // Интерполируем z
                         z = l1 * p1.z + l2 * p2.z + l3 * p3.z;
                     }
-                    if (zMap[y][x] < z) {
+                    if (zMap[y][x] < z || z <= 0) {
                         continue;
                     }
                     synchronized (lockObj) {
