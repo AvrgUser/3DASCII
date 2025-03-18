@@ -1,4 +1,3 @@
-
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.nio.file.Files;
@@ -9,7 +8,7 @@ import java.util.concurrent.*;
 
 class Main {
 
-    static class Vertex {
+    static class Vertex{
 
         float x, y, z;
 
@@ -34,6 +33,11 @@ class Main {
             float finalY = rotatedX * (float) Math.sin(a.z) + rotatedY * (float) Math.cos(a.z);
             float finalZ = rotatedZ;
             return new Vertex(finalX, finalY, finalZ);
+        }
+
+        static float Distance(Vertex v1, Vertex v2){
+            Vertex dif = new Vertex(v1.x-v2.x, v1.y-v2.y, v1.z-v2.z);
+            return (float)Math.sqrt(dif.x*dif.x+dif.y*dif.y+dif.z*dif.z);
         }
     }
 
@@ -66,22 +70,24 @@ class Main {
         }
     }
 
-    static int height = 100, width = 150;
+    static int width = 150, height = 90;
     static int frames = 0;
+    static boolean lineMode = false;
     static float avg1 = 0, avg2 = 0, avg3 = 0;
     static Object lockObj = new Object();
-    static float[][] zMap = new float[width][height];
+    static float[][] zMap = new float[height][width];
 
     public static void main(String[] args) throws InterruptedException {
+
         var result = LoadObjectFromFile("D:\\projects\\dr\\3DASCII\\cube\\cube.txt"); // Укажите свой файл
-        Vertex[] vertices = result.vertices;
-        Polygon[] connections = result.connections;
+        List<Vertex> vertices = result.vertices;
+        List<Polygon> polygons = result.connections;
 
         Window window = new Window();
         Angle angle = new Angle(0, 0, 0);
-        Vertex position = new Vertex(0, 0, 3);
+        Vertex position = new Vertex(0, 0, 5);
 
-        float angSpeed = 0.7f, speed = 0.1f;
+        float angSpeed = 0.7f, speed = 0.4f;
         window.textArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -123,6 +129,21 @@ class Main {
                     case KeyEvent.VK_Z -> {
                         position.y += speed;
                     }
+                    
+                }
+            }
+            @Override
+            public void keyReleased(KeyEvent e) {
+                super.keyReleased(e);
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_F ->{
+                        synchronized (lockObj) {
+                        AddVertex(vertices, polygons, position, angle, 2);
+                        }
+                    }
+                    case KeyEvent.VK_R ->{
+                        lineMode = !lineMode;
+                    }
                 }
             }
         });
@@ -135,8 +156,11 @@ class Main {
 //                    Math.PI / 2 * Math.sin(i * Math.PI / 100),
 //                    Math.PI / 100 * i
 //            ));
-                var frame = Draw(vertices, connections, angle, position);
+                var arr1 = vertices.toArray(new Vertex[0]);
+                var arr2 = polygons.toArray(new Polygon[0]);
+                var frame = Draw(arr1, arr2, angle, position);
                 window.UpdateFrame(frame);
+                window.UpdateInfo(position, angle, arr1, arr2);
             }
         } catch (Exception e) {
             System.out.println("wdad");
@@ -145,10 +169,10 @@ class Main {
 
     static class Result {
 
-        Vertex[] vertices;
-        Polygon[] connections;
+        List<Vertex> vertices;
+        List<Polygon> connections;
 
-        Result(Vertex[] v, Polygon[] c) {
+        Result(List<Vertex> v, List<Polygon> c) {
             vertices = v;
             connections = c;
         }
@@ -198,8 +222,8 @@ class Main {
         }
 
         return new Result(
-                vertices.toArray(new Vertex[0]),
-                connections.toArray(new Polygon[0])
+                vertices,
+                connections
         );
     }
 
@@ -211,7 +235,7 @@ class Main {
             Vertex v = vertices[i];
 
             var r = Vertex.Rotate(v, angle);
-            float scale = 20 / (r.z + offset.z);
+            float scale = 170 / (r.z + offset.z);
             float projectedX = r.x * scale + 45;
             float projectedY = r.y * scale + 70;
             projectedVertices[i] = new Vertex(0, 0, 0);
@@ -223,9 +247,9 @@ class Main {
         avg1 = (avg1 * frames + (System.currentTimeMillis() - t)) / (frames + 1);
         t = System.currentTimeMillis();
 
-        char[][] screen = new char[width][height];
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
+        char[][] screen = new char[height][width];
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
                 screen[j][i] = ' ';
                 zMap[j][i] = Float.MAX_VALUE;
             }
@@ -236,7 +260,15 @@ class Main {
 
         for (Polygon p : connections) {
             executor.submit(() -> {
-                FillTriangle(screen,
+                if (lineMode){
+                    DrawLine(screen, projectedVertices[p.p1].x,projectedVertices[p.p1].y,
+                    projectedVertices[p.p2].x,projectedVertices[p.p2].y, p.ch);
+                    DrawLine(screen, projectedVertices[p.p3].x,projectedVertices[p.p3].y,
+                    projectedVertices[p.p2].x,projectedVertices[p.p2].y, p.ch);
+                    DrawLine(screen, projectedVertices[p.p1].x,projectedVertices[p.p1].y,
+                    projectedVertices[p.p3].x,projectedVertices[p.p3].y, p.ch);
+                }
+                else FillTriangle(screen,
                         projectedVertices[p.p1],
                         projectedVertices[p.p2],
                         projectedVertices[p.p3],
@@ -254,8 +286,8 @@ class Main {
         }
 
         StringBuilder render = new StringBuilder();
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
                 render.append(screen[i][j]).append(screen[i][j]);
             }
             render.append("\n");
@@ -269,7 +301,7 @@ class Main {
         return render.toString();
     }
 
-    /*static void DrawLine(char[][] screen, float x0d, float y0d, float x1d, float y1d, char ch) {
+    static void DrawLine(char[][] screen, float x0d, float y0d, float x1d, float y1d, char ch) {
         int x0 = (int) x0d;
         int y0 = (int) y0d;
         int x1 = (int) x1d;
@@ -282,7 +314,7 @@ class Main {
         int err = dx - dy;
 
         while (true) {
-            if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height) {
+            if (x0 >= 0 && x0 < height && y0 >= 0 && y0 < width) {
                 synchronized (lockObj) {
                     screen[x0][y0] = ch;
                 }
@@ -300,7 +332,8 @@ class Main {
                 y0 += sy;
             }
         }
-    }*/
+    }
+
     static void FillTriangle(char[][] screen, Vertex p1, Vertex p2, Vertex p3, char ch) {
         // Определяем ограничивающий прямоугольник треугольника
         int minX = (int) Math.max(Math.min(Math.min(p1.x, p2.x), p3.x), 0);
@@ -329,12 +362,12 @@ class Main {
 
                         z = l1 * p1.z + l2 * p2.z + l3 * p3.z;
                     }
-                    if (zMap[y][x] < z || z <= 0) {
+                    if (zMap[x][y] < z || z <= 0) {
                         continue;
                     }
                     synchronized (lockObj) {
-                        zMap[y][x] = z;
-                        screen[y][x] = ch;
+                        zMap[x][y] = z;
+                        screen[x][y] = ch;
                     }
                 }
             }
@@ -352,5 +385,25 @@ class Main {
         boolean allNonPositive = (crossAB <= 0) && (crossBC <= 0) && (crossCA <= 0);
 
         return allNonNegative || allNonPositive;
+    }
+
+    static void AddVertex(List<Vertex> vertices, List<Polygon> polygons, Vertex position, Angle rotation, float distance){
+        Vertex newOne = Vertex.Rotate(new Vertex(0, 0, distance), new Angle(rotation.x, rotation.y, rotation.z));
+        newOne = new Vertex(newOne.x-position.x, newOne.y-position.y, newOne.z-position.z);
+        float min1 = -2, min2 = -2;
+        int point1 = 0, point2 = 0;
+        for (int i = 0; i < vertices.size(); i++) {
+            float dist = Vertex.Distance(vertices.get(i), newOne);
+            if (dist<min2||min2<0){
+                min2 = dist;
+                point2 = i;
+            }
+            else if ((dist<min1|| min1<0)&&i!=point2){
+                min1 = dist;
+                point1 = i;
+            }
+        }
+        vertices.add(newOne);
+        polygons.add(new Polygon(vertices.size()-1, point1, point2, String.valueOf(polygons.size()).charAt(0)));
     }
 }
