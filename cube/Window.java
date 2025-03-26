@@ -6,6 +6,7 @@ import javax.swing.text.StyleConstants;
 class Window extends JFrame {
     JTextArea textArea;
     JTextArea infoArea;
+    JTextArea rotatorArea;
 
     public Window() {
 
@@ -25,12 +26,21 @@ class Window extends JFrame {
         textArea.setEditable(false);
         textArea.setFocusable(true);
 
-        infoArea = new JTextArea(1000, 30);
+        infoArea = new JTextArea(100, 30);
         infoArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN,12));
+        infoArea.setEditable(false);
+        infoArea.setFocusable(false);
 
-        JScrollPane scrollPane = new JScrollPane(textArea);
+        rotatorArea = new JTextArea(10, 10);
+        rotatorArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN,12));
+        rotatorArea.setEditable(true);
+        rotatorArea.setBorder(BorderFactory.createEmptyBorder(2,2,2,2));
+        rotatorArea.setText("adndgtn rntzen");
+
+        JScrollPane scrollPane = new JScrollPane(infoArea);
         add(textArea, BorderLayout.WEST);
-        add(infoArea, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
+        add(rotatorArea, BorderLayout.EAST);
     }
 
     public void UpdateFrame(String frame){

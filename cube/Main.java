@@ -35,6 +35,22 @@ class Main {
             return new Vertex(finalX, finalY, finalZ);
         }
 
+        static Vertex InvRotate(Vertex v, Angle a) {
+            float x = v.x;
+            float y = v.y;
+            float z = v.z;
+
+            float rotatedX = x * (float) Math.cos(a.z) - y * (float) Math.sin(a.z);
+            float rotatedY = x * (float) Math.sin(a.z) + y * (float) Math.cos(a.z);
+
+            rotatedY = rotatedY * (float) Math.cos(a.x) - z * (float) Math.sin(a.x);
+            float rotatedZ = z * (float) Math.cos(a.x) + rotatedY * (float) Math.sin(a.x);
+
+            rotatedX = rotatedX * (float) Math.cos(a.y) - rotatedZ * (float) Math.sin(a.y);
+            rotatedZ = rotatedZ * (float) Math.cos(a.y) + rotatedX * (float) Math.sin(a.y);
+            return new Vertex(rotatedX, rotatedY, rotatedZ);
+        }
+
         static float Distance(Vertex v1, Vertex v2){
             Vertex dif = new Vertex(v1.x-v2.x, v1.y-v2.y, v1.z-v2.z);
             return (float)Math.sqrt(dif.x*dif.x+dif.y*dif.y+dif.z*dif.z);
@@ -87,7 +103,7 @@ class Main {
         Angle angle = new Angle(0, 0, 0);
         Vertex position = new Vertex(0, 0, 5);
 
-        float angSpeed = 0.7f, speed = 0.4f;
+        float angSpeed = 0.4f, speed = 0.1f;
         window.textArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -137,9 +153,7 @@ class Main {
                 super.keyReleased(e);
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_F ->{
-                        synchronized (lockObj) {
                         AddVertex(vertices, polygons, position, angle, 2);
-                        }
                     }
                     case KeyEvent.VK_R ->{
                         lineMode = !lineMode;
@@ -156,6 +170,24 @@ class Main {
 //                    Math.PI / 2 * Math.sin(i * Math.PI / 100),
 //                    Math.PI / 100 * i
 //            ));
+                if(angle.x>Math.PI){
+                    angle.x-=2*Math.PI;
+                }
+                if(angle.y>Math.PI){
+                    angle.y-=2*Math.PI;
+                }
+                if(angle.z>Math.PI){
+                    angle.z-=2*Math.PI;
+                }
+                if(angle.x<-Math.PI){
+                    angle.x+=2*Math.PI;
+                }
+                if(angle.y<-Math.PI){
+                    angle.y+=2*Math.PI;
+                }
+                if(angle.z<-Math.PI){
+                    angle.z+=2*Math.PI;
+                }
                 var arr1 = vertices.toArray(new Vertex[0]);
                 var arr2 = polygons.toArray(new Polygon[0]);
                 var frame = Draw(arr1, arr2, angle, position);
@@ -388,8 +420,10 @@ class Main {
     }
 
     static void AddVertex(List<Vertex> vertices, List<Polygon> polygons, Vertex position, Angle rotation, float distance){
-        Vertex newOne = Vertex.Rotate(new Vertex(0, 0, distance), new Angle(rotation.x, rotation.y, rotation.z));
-        newOne = new Vertex(newOne.x-position.x, newOne.y-position.y, newOne.z-position.z);
+        Vertex newOne = Vertex.Rotate(new Vertex(-position.x, -position.y, -position.z), new Angle(-rotation.x, -rotation.y, -rotation.z));
+        //Vertex newOne = Vertex.Rotate(new Vertex(position.x, position.y, position.z), rotation);
+        float dif = Vertex.Distance(position, new Vertex(0,0,0));
+        newOne = new Vertex(newOne.x/dif*(dif-distance), newOne.y/dif*(dif-distance), newOne.z/dif*(dif-distance));
         float min1 = -2, min2 = -2;
         int point1 = 0, point2 = 0;
         for (int i = 0; i < vertices.size(); i++) {
